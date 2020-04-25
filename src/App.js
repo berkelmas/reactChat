@@ -27,7 +27,9 @@ function App() {
           path="/all-rooms"
           component={AllRoomsScreen}
         ></AuthenticationGuard>
+        {/* 
         <Route path="/chat-room/:user" component={ChatRoomScreen}></Route>
+        */}
       </Switch>
     </Router>
   );

@@ -27,6 +27,11 @@ const ChatRoomScreen = () => {
       const users = _convertOnlineUsers(onlineUsers);
       dispatch(setOnlineUsersAction(users));
     });
+
+    return () => {
+      socket.off("chat message");
+      socket.off("get online users");
+    };
   }, [dispatch, user, username]);
 
   const handleSubmit = (e) => {
@@ -43,7 +48,7 @@ const ChatRoomScreen = () => {
   return (
     <div
       style={{
-        height: "100vh",
+        height: "700px",
         backgroundColor: "#f7f7f7",
         overflow: "scroll",
       }}
