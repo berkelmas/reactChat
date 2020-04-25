@@ -12,6 +12,7 @@ import {
 const AllRoomsScreen = (props) => {
   const dispatch = useDispatch();
   const onlineUsers = useSelector((state) => state.userReducer.onlineUsers);
+  const username = useSelector((state) => state.userReducer.username);
 
   useEffect(() => {
     getOnlineUsers().then((res) => {
@@ -27,6 +28,7 @@ const AllRoomsScreen = (props) => {
   }, [dispatch]);
 
   const handleChat = (user) => {
+    props.history.push(`/chat-room/${JSON.stringify(user)}`);
     console.log(user);
   };
 
@@ -47,9 +49,11 @@ const AllRoomsScreen = (props) => {
             <Typography.Paragraph className="mb-0">
               {user.username}
             </Typography.Paragraph>
-            <Button onClick={() => handleChat(user)} type="primary">
-              Chat
-            </Button>
+            {user.username !== username && (
+              <Button onClick={() => handleChat(user)} type="primary">
+                Chat
+              </Button>
+            )}
           </li>
         ))}
       </ul>
