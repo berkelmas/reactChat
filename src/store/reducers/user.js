@@ -12,7 +12,7 @@ export const userReducer = (state = INITIAL_STATE, action) => {
     case add_username:
       return { ...state, username: action.payload };
     case logout:
-      return { state, username: null };
+      return { ...state, username: null, onlineUsers: [] };
     default:
       return state;
   }

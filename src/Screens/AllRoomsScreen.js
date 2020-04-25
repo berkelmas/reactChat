@@ -33,6 +33,7 @@ const AllRoomsScreen = (props) => {
 
     return () => {
       socket.off("chat message", showNotification);
+      socket.off("get online users");
     };
   }, [dispatch]);
 
