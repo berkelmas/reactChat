@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { _convertOnlineUsers } from "../utilities/convertOnlineUsers";
 import { setOnlineUsersAction } from "../store/actions/user-actions";
+import { getMessages } from "../services/message-service";
 
 const ChatRoomScreen = () => {
   const { user } = useParams();
@@ -13,32 +14,28 @@ const ChatRoomScreen = () => {
   const [messageState, setMessageState] = useState("");
   const [myMessages, setMyMessages] = useState([]);
   useEffect(() => {
+    if (username) {
+      getMessages([user, username]).then((res) =>
+        setMyMessages(res.data.messages)
+      );
+    }
+
     socket.on("chat message", (data) => {
-      setMyMessages((prev) => [
-        ...prev,
-        { message: data.message, type: data.type },
-      ]);
+      setMyMessages((prev) => [...prev, data]);
     });
     socket.on("get online users", (onlineUsers) => {
       const users = _convertOnlineUsers(onlineUsers);
       dispatch(setOnlineUsersAction(users));
     });
-  }, [dispatch]);
+  }, [dispatch, user, username]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log(onlineUsers);
-    // socket.emit("chat message", {
-    //   sockets: onlineUsers.find(
-    //     (item) => item.username === JSON.parse(user).username
-    //   ).sockets,
-    //   message: messageState,
-    // });
     socket.emit("chat message", {
-      sockets: onlineUsers.find(
-        (item) => item.username === JSON.parse(user).username
-      ).sockets,
+      sockets: onlineUsers.find((item) => item.username === user).sockets,
       message: messageState,
+      sender: username,
+      receiver: user,
     });
     setMessageState("");
   };
@@ -57,13 +54,11 @@ const ChatRoomScreen = () => {
           <div
             key={index}
             className={`card w-25 m-3 shadow-sm border-0 ${
-              item.type === "to" ? "ml-auto" : "mr-auto"
+              item.sender === username ? "ml-auto" : "mr-auto"
             }`}
           >
             <div className="card-body">
-              <span className="message-sender">
-                {item.type === "to" ? username : JSON.parse(user).username}
-              </span>
+              <span className="message-sender">{item.sender}</span>
               <div className="pt-3 pb-3">
                 <p>{item.message}</p>
               </div>

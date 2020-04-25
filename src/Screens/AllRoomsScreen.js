@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Divider, Button, Typography } from "antd";
 import { socket } from "../App";
 import { getOnlineUsers } from "../services/user-service";
@@ -8,6 +8,7 @@ import {
   setOnlineUsersAction,
   logoutAction,
 } from "../store/actions/user-actions";
+import { showNotification } from "../utilities/showNotification";
 
 const AllRoomsScreen = (props) => {
   const dispatch = useDispatch();
@@ -25,11 +26,16 @@ const AllRoomsScreen = (props) => {
       const users = _convertOnlineUsers(onlineUsers);
       dispatch(setOnlineUsersAction(users));
     });
+
+    socket.on("chat message", showNotification);
+
+    return () => {
+      socket.off("chat message", showNotification);
+    };
   }, [dispatch]);
 
   const handleChat = (user) => {
-    props.history.push(`/chat-room/${JSON.stringify(user)}`);
-    console.log(user);
+    props.history.push(`/chat-room/${user.username}`);
   };
 
   const handleLogout = () => {
@@ -46,7 +52,7 @@ const AllRoomsScreen = (props) => {
             key={index}
             className="list-group-item d-flex justify-content-between align-items-center"
           >
-            <Typography.Paragraph className="mb-0">
+            <Typography.Paragraph className="mb-0 d-flex align-items-center">
               {user.username}
             </Typography.Paragraph>
             {user.username !== username && (
