@@ -6,20 +6,16 @@ import * as serviceWorker from "./serviceWorker";
 
 // REDUX
 import { Provider } from "react-redux";
-import { createStore, applyMiddleware, compose } from "redux";
-import thunk from "redux-thunk";
-import { rootReducer } from "./store/reducers/index";
+import configureStore, { history } from "./store/store-config";
+import { ConnectedRouter } from "connected-react-router";
 
-const composeEnhancers =
-  process.env.NODE_ENV === "development"
-    ? window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__
-    : null || compose;
-
-const store = createStore(rootReducer, applyMiddleware(thunk));
+const store = configureStore();
 
 ReactDOM.render(
   <Provider store={store}>
-    <App />
+    <ConnectedRouter history={history}>
+      <App />
+    </ConnectedRouter>
   </Provider>,
   document.getElementById("root")
 );

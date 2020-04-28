@@ -20,18 +20,15 @@ function App() {
   }, [dispatch]);
 
   return (
-    <Router>
+    <>
       <Switch>
         <Route path="/" exact={true} component={LoginScreen}></Route>
-        <AuthenticationGuard
-          path="/all-rooms"
-          component={AllRoomsScreen}
-        ></AuthenticationGuard>
+        <Route path="/all-rooms" component={AllRoomsScreen}></Route>
         {/* 
         <Route path="/chat-room/:user" component={ChatRoomScreen}></Route>
         */}
       </Switch>
-    </Router>
+    </>
   );
 }
 

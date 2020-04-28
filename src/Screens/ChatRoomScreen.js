@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { socket } from "../App";
 import { useParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { _convertOnlineUsers } from "../utilities/convertOnlineUsers";
 import { setOnlineUsersAction } from "../store/actions/user-actions";
 import { getMessages } from "../services/message-service";
 import { ReloadOutlined, LoadingOutlined } from "@ant-design/icons";
@@ -11,8 +10,7 @@ import { Button } from "antd";
 const ChatRoomScreen = () => {
   const { user } = useParams();
   const dispatch = useDispatch();
-  const onlineUsers = useSelector((state) => state.userReducer.onlineUsers);
-  const username = useSelector((state) => state.userReducer.username);
+  const reduxUser = useSelector((state) => state.userReducer.user);
   const [messageState, setMessageState] = useState("");
   const [myMessages, setMyMessages] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
@@ -20,23 +18,34 @@ const ChatRoomScreen = () => {
   const [messagesLeft, setMessagesLeft] = useState(true);
   useEffect(() => {
     socket.on("chat message", (data) => {
-      setMyMessages((prev) => [...prev, data]);
+      if (data.sender._id === user || data.sender._id === reduxUser._id) {
+        setMyMessages((prev) => [...prev, data]);
+        if (data.sender._id === user) {
+          socket.emit("read message", {
+            message: data,
+            token: localStorage.getItem("token"),
+          });
+        }
+      }
     });
-    socket.on("get online users", (onlineUsers) => {
-      const users = _convertOnlineUsers(onlineUsers);
-      dispatch(setOnlineUsersAction(users));
-    });
+
+    socket.on("read message", (data) => console.log(data));
 
     return () => {
       socket.off("chat message");
-      socket.off("get online users");
     };
-  }, [dispatch]);
+  }, [dispatch, reduxUser, user]);
 
   useEffect(() => {
-    if (username && messagesLeft) {
+    setMyMessages([]);
+    setCurrentPage(0);
+    setMessagesLeft(true);
+  }, [user]);
+
+  useEffect(() => {
+    if (reduxUser && messagesLeft) {
       setMessagesLoading(true);
-      getMessages([user, username], currentPage * 2, 2).then((res) => {
+      getMessages([user, reduxUser._id], currentPage * 2, 2).then((res) => {
         setMessagesLeft(res.data.messagesLeft);
         if (res.data.messagesLeft) {
           setMyMessages((prev) => [...res.data.messages.reverse(), ...prev]);
@@ -44,14 +53,13 @@ const ChatRoomScreen = () => {
         setMessagesLoading(false);
       });
     }
-  }, [user, username, currentPage, messagesLeft]);
+  }, [user, reduxUser, currentPage, messagesLeft]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     socket.emit("chat message", {
-      sockets: onlineUsers.find((item) => item.username === user).sockets,
       message: messageState,
-      sender: username,
+      sender: reduxUser._id,
       receiver: user,
     });
     setMessageState("");
@@ -80,17 +88,26 @@ const ChatRoomScreen = () => {
         {myMessages.map((item, index) => (
           <div
             key={index}
-            className={`card w-25 m-3 shadow-sm border-0 ${
-              item.sender === username ? "ml-auto" : "mr-auto"
+            className={`card w-50 m-3 shadow-sm border-0 ${
+              item.sender._id === reduxUser._id ? "ml-auto" : "mr-auto"
             }`}
           >
             <div className="card-body">
-              <span className="message-sender">{item.sender}</span>
+              <span className="message-sender">{item.sender.fullName}</span>
               <div className="pt-3 pb-3">
                 <p>{item.message}</p>
               </div>
 
-              <span className="message-date">03/02/2020</span>
+              <span className="message-date">
+                {new Date(item.timeCreated).toLocaleString()}
+              </span>
+              {item.sender._id === reduxUser._id && (
+                <span className="read-status">
+                  {item.readBy.map((item) => item.user).includes(user)
+                    ? `Read`
+                    : `Unread`}
+                </span>
+              )}
             </div>
           </div>
         ))}

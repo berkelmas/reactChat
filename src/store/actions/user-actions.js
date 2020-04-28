@@ -1,26 +1,49 @@
 import { socket } from "../../App";
+import { loginService, verifyJWT } from "../../services/user-service";
 import {
-  add_username,
+  success_login,
   renew_online_users,
   no_action,
   logout,
 } from "../types/user-types";
+import jwt from "jsonwebtoken";
+import { push } from "connected-react-router";
 
-export const addUsernameAction = (username) => {
+export const loginAction = ({ username, password }) => {
   return (dispatch) => {
-    socket.emit("register user socketid", username);
-    localStorage.setItem("username", username);
-    dispatch({ type: add_username, payload: username });
+    loginService(username, password)
+      .then((res) => {
+        const userData = res.data;
+        const tokenPayload = jwt.decode(userData.token);
+        socket.emit("register user socketid", tokenPayload._id);
+        localStorage.setItem("token", userData.token);
+        dispatch({ type: success_login, payload: tokenPayload });
+        dispatch(push("/all-rooms"));
+      })
+      .catch((err) => dispatch({ type: no_action }));
   };
 };
 
 export const rebuildUserFromLocalStorage = () => {
-  const username = localStorage.getItem("username");
-  if (username) {
-    socket.emit("register user socketid", username);
-    return { type: add_username, payload: username };
-  }
-  return { type: no_action };
+  return (dispatch) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      verifyJWT(token)
+        .then((res) => {
+          const tokenPayload = jwt.decode(token);
+          socket.emit("register user socketid", tokenPayload._id);
+          dispatch({ type: success_login, payload: tokenPayload });
+          // push("/all-rooms");
+        })
+        .catch((err) => {
+          dispatch({ type: logout });
+          socket.emit("logout user");
+          localStorage.removeItem("token");
+          push("/");
+        });
+    }
+    dispatch({ type: logout });
+  };
 };
 
 export const setOnlineUsersAction = (onlineUsers) => {
@@ -30,7 +53,7 @@ export const setOnlineUsersAction = (onlineUsers) => {
 export const logoutAction = () => {
   return (dispatch) => {
     socket.emit("logout user");
-    localStorage.removeItem("username");
+    localStorage.removeItem("token");
     dispatch({ type: logout });
   };
 };

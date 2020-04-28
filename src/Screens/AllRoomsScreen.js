@@ -1,9 +1,8 @@
-import React, { useEffect } from "react";
-import { Divider, Button, Typography } from "antd";
+import React, { useEffect, useState } from "react";
+import { Button, Typography } from "antd";
 import { Route } from "react-router-dom";
 import { socket } from "../App";
-import { getOnlineUsers } from "../services/user-service";
-import { _convertOnlineUsers } from "../utilities/convertOnlineUsers";
+import { getAllUsers } from "../services/user-service";
 import { useDispatch, useSelector } from "react-redux";
 import {
   setOnlineUsersAction,
@@ -14,19 +13,18 @@ import ChatRoomScreen from "./ChatRoomScreen";
 
 const AllRoomsScreen = (props) => {
   const dispatch = useDispatch();
+  const [availableUsers, setAvailableUsers] = useState([]);
   const onlineUsers = useSelector((state) => state.userReducer.onlineUsers);
-  const username = useSelector((state) => state.userReducer.username);
+  const reduxUser = useSelector((state) => state.userReducer.user);
 
   useEffect(() => {
-    getOnlineUsers().then((res) => {
-      const onlineUsers = res.data.result;
-      const users = _convertOnlineUsers(onlineUsers);
-      dispatch(setOnlineUsersAction(users));
+    getAllUsers(0, 9999).then((res) => {
+      const { users } = res.data;
+      setAvailableUsers(users);
     });
 
     socket.on("get online users", (onlineUsers) => {
-      const users = _convertOnlineUsers(onlineUsers);
-      dispatch(setOnlineUsersAction(users));
+      dispatch(setOnlineUsersAction(onlineUsers));
     });
 
     socket.on("chat message", showNotification);
@@ -38,7 +36,7 @@ const AllRoomsScreen = (props) => {
   }, [dispatch]);
 
   const handleChat = (user) => {
-    props.history.push(`/all-rooms/${user.username}`);
+    props.history.push(`/all-rooms/${user._id}`);
   };
 
   const handleLogout = () => {
@@ -61,15 +59,28 @@ const AllRoomsScreen = (props) => {
               className="list-group mb-3 border-0"
               style={{ height: "500px", overflow: "scroll" }}
             >
-              {onlineUsers.map((user, index) => (
+              {availableUsers.map((user, index) => (
                 <li
-                  key={index}
+                  key={user._id}
                   className="list-group-item d-flex justify-content-between align-items-center border-0"
                 >
                   <Typography.Paragraph className="mb-0 d-flex align-items-center">
-                    {user.username}
+                    {user.fullName}
+                    {onlineUsers.find(
+                      (onlineUser) => onlineUser.email === user.email
+                    ) && (
+                      <span
+                        style={{
+                          height: "10px",
+                          width: "10px",
+                          marginLeft: "10px",
+                          borderRadius: "10px",
+                          backgroundColor: "#3F91F7",
+                        }}
+                      ></span>
+                    )}
                   </Typography.Paragraph>
-                  {user.username !== username && (
+                  {user.email !== (reduxUser && reduxUser.email) && (
                     <Button onClick={() => handleChat(user)} type="primary">
                       Chat
                     </Button>
