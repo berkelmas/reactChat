@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { socket } from "../App";
 import { useParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { setOnlineUsersAction } from "../store/actions/user-actions";
 import { getMessages } from "../services/message-service";
 import { ReloadOutlined, LoadingOutlined } from "@ant-design/icons";
 import { Button } from "antd";
@@ -16,10 +15,12 @@ const ChatRoomScreen = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [messagesLeft, setMessagesLeft] = useState(true);
+  const chatContainer = useRef();
   useEffect(() => {
     socket.on("chat message", (data) => {
       if (data.sender._id === user || data.sender._id === reduxUser._id) {
         setMyMessages((prev) => [...prev, data]);
+        chatContainer.current.scrollTop = chatContainer.current.scrollHeight;
         if (data.sender._id === user) {
           socket.emit("read message", {
             message: data,
@@ -29,10 +30,15 @@ const ChatRoomScreen = () => {
       }
     });
 
-    socket.on("read message", (data) => console.log(data));
+    socket.on("read message", (msg) => {
+      setMyMessages((prev) =>
+        prev.map((item) => (item._id === msg._id ? msg : item))
+      );
+    });
 
     return () => {
       socket.off("chat message");
+      socket.off("read message");
     };
   }, [dispatch, reduxUser, user]);
 
@@ -67,13 +73,28 @@ const ChatRoomScreen = () => {
 
   return (
     <div
+      ref={chatContainer}
       style={{
-        height: "700px",
+        height: "95vh",
         backgroundColor: "#f7f7f7",
         overflow: "scroll",
       }}
       className="d-flex flex-column justify-content-between"
     >
+      {/* <div
+        className="shadow-sm d-flex justify-content-between align-items-center"
+        style={{
+          height: "60px",
+          width: "100%",
+          backgroundColor: "white",
+          position: "absolute",
+          top: 0,
+          right: 0,
+          zIndex: 10000,
+        }}
+      >
+        <Typography.Text className="pl-3">{`Berk Elmas`}</Typography.Text>
+      </div> */}
       {messagesLeft && (
         <Button
           onClick={() => setCurrentPage((prev) => prev + 1)}
