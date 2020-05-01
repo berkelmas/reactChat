@@ -10,12 +10,14 @@ import {
 } from "../store/actions/user-actions";
 import { showNotification } from "../utilities/showNotification";
 import ChatRoomScreen from "./ChatRoomScreen";
+import { getUnreadMessageCount } from "../services/message-service";
 
 const AllRoomsScreen = (props) => {
   const dispatch = useDispatch();
   const [availableUsers, setAvailableUsers] = useState([]);
   const onlineUsers = useSelector((state) => state.userReducer.onlineUsers);
   const reduxUser = useSelector((state) => state.userReducer.user);
+  const [unreadMessageHash, setUnreadMessageHash] = useState([]);
 
   useEffect(() => {
     getAllUsers(0, 9999).then((res) => {
@@ -27,8 +29,16 @@ const AllRoomsScreen = (props) => {
       }
     });
 
+    getUnreadMessageCount().then((res) => {
+      setUnreadMessageHash(res.data.result);
+    });
+
     socket.on("get online users", (onlineUsers) => {
       dispatch(setOnlineUsersAction(onlineUsers));
+    });
+
+    socket.on("unread message count", (data) => {
+      setUnreadMessageHash(data);
     });
 
     return () => {
@@ -36,9 +46,9 @@ const AllRoomsScreen = (props) => {
     };
   }, [dispatch, reduxUser]);
 
-  const handleChat = (user) => {
-    props.history.push(`/all-rooms/${user._id}`);
-  };
+  useEffect(() => {
+    console.log(unreadMessageHash);
+  }, [unreadMessageHash]);
 
   const handleLogout = () => {
     dispatch(logoutAction());
@@ -66,7 +76,7 @@ const AllRoomsScreen = (props) => {
               {availableUsers.map((user, index) => (
                 <NavLink
                   to={`/all-rooms/${user._id}`}
-                  activeClassName="active"
+                  activeClassName="selected-chat"
                   key={user._id}
                   className="list-group-item d-flex justify-content-between align-items-center border-0"
                 >
@@ -86,6 +96,23 @@ const AllRoomsScreen = (props) => {
                       ></span>
                     )}
                   </Typography.Paragraph>
+
+                  <span
+                    style={{
+                      border: "1px solid #767676",
+                      borderRadius: "100px",
+                      height: "30px",
+                      width: "30px",
+                      padding: "5px",
+                      color: "#767676",
+                    }}
+                    className="d-flex justify-content-center align-items-center"
+                  >
+                    {unreadMessageHash.find((item) => item._id === user._id)
+                      ? unreadMessageHash.find((item) => item._id === user._id)
+                          .count
+                      : `0`}
+                  </span>
                 </NavLink>
               ))}
             </ul>

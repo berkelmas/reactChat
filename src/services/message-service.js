@@ -13,3 +13,10 @@ export const getMessages = (users, skip, limit) => {
     { headers: { Authorization: `Bearer ${token}` } }
   );
 };
+
+export const getUnreadMessageCount = () => {
+  const token = localStorage.getItem("token");
+  return axios.get(`${config.apiUrl}unread-messages`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};
