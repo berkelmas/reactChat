@@ -15,6 +15,7 @@ const ChatRoomScreen = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [messagesLeft, setMessagesLeft] = useState(true);
+  const [userTyping, setUserTyping] = useState(false);
   const chatContainer = useRef();
   useEffect(() => {
     socket.on("chat message", (data) => {
@@ -46,6 +47,18 @@ const ChatRoomScreen = () => {
     setMyMessages([]);
     setCurrentPage(0);
     setMessagesLeft(true);
+
+    socket.on("typing", (writingUserId) => {
+      if (writingUserId === user) {
+        setUserTyping(true);
+        setTimeout(() => {
+          setUserTyping(false);
+        }, 1000);
+      }
+    });
+    return () => {
+      socket.off("typing");
+    };
   }, [user]);
 
   useEffect(() => {
@@ -81,20 +94,6 @@ const ChatRoomScreen = () => {
       }}
       className="d-flex flex-column justify-content-between"
     >
-      {/* <div
-        className="shadow-sm d-flex justify-content-between align-items-center"
-        style={{
-          height: "60px",
-          width: "100%",
-          backgroundColor: "white",
-          position: "absolute",
-          top: 0,
-          right: 0,
-          zIndex: 10000,
-        }}
-      >
-        <Typography.Text className="pl-3">{`Berk Elmas`}</Typography.Text>
-      </div> */}
       {messagesLeft && (
         <Button
           onClick={() => setCurrentPage((prev) => prev + 1)}
@@ -134,23 +133,32 @@ const ChatRoomScreen = () => {
         ))}
         <div style={{ height: "100px" }}></div>
       </div>
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          position: "absolute",
-          bottom: 0,
-          width: "100%",
-          backgroundColor: "white",
-        }}
-        className="pt-3 pb-3 pl-2 pr-2 shadow-lg"
-      >
-        <input
-          className="form-control"
-          value={messageState}
-          onChange={(e) => setMessageState(e.target.value)}
-          placeholder="Write Some..."
-        />
-      </form>
+      <div>
+        {userTyping && <p className="mb-4 pb-3 pl-3">Typing...</p>}
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            position: "absolute",
+            bottom: 0,
+            width: "100%",
+            backgroundColor: "white",
+          }}
+          className="pt-3 pb-3 pl-2 pr-2 shadow-lg"
+        >
+          <input
+            className="form-control"
+            value={messageState}
+            onChange={(e) => {
+              setMessageState(e.target.value);
+              socket.emit("typing", {
+                writingToUserId: user,
+                writingUserId: reduxUser._id,
+              });
+            }}
+            placeholder="Write Some..."
+          />
+        </form>
+      </div>
     </div>
   );
 };
